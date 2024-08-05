@@ -22,24 +22,24 @@ import threading
 
 # Save frames -----------------------------------------------------------------
 
-def save_frames(hololens_frame, realsense_frame, hololens_dir, realsense_dir):
-        threading.Timer(5.0, save_frames).start()
-        framename = int(round(time.time() * 1000))
-        hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
-        realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")
-        cv2.imwrite(hololens_img_path, hololens_frame)
-        cv2.imwrite(realsense_img_path, realsense_frame)
+# def save_frames(hololens_frame, realsense_frame, hololens_dir, realsense_dir):
+#         threading.Timer(5.0, save_frames).start()
+#         framename = int(round(time.time() * 1000))
+#         hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
+#         realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")
+#         cv2.imwrite(hololens_img_path, hololens_frame)
+#         cv2.imwrite(realsense_img_path, realsense_frame)
 
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = "169.254.50.249"
+host = "192.168.2.154"
 
 # Operating mode
 # 0: video
 # 1: video + camera pose
 # 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_1
+mode = hl2ss.StreamMode.MODE_2
 
 # Enable Mixed Reality Capture (Holograms)
 enable_mrc = False
@@ -125,18 +125,20 @@ else:
     client = hl2ss_lnm.rx_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, mode=mode, width=width, height=height, framerate=framerate, divisor=divisor, profile=profile, decoded_format=decoded_format)
     client.open()
     RecordStream = False
+    last_frame_time = time.time() # Initialize frame time
 
     while (enable):
         data = client.get_next_packet()
         frame = pipe.wait_for_frames()
         color_frame = frame.get_color_frame()
         color_image = np.asanyarray(color_frame.get_data())
+        intrinsics = color_frame.profile.as_video_stream_profile().intrinsics
 
         print(f'Pose at time {data.timestamp}')
         print(data.pose)
         print(f'Focal length: {data.payload.focal_length}')
         print(f'Principal point: {data.payload.principal_point}')
- 
+        
         cv2.imshow('HoloLens2', data.payload.image)
         cv2.imshow('Realsense', color_image)
         key = cv2.waitKey(1)
@@ -146,12 +148,33 @@ else:
             if not RecordStream:
                 time.sleep(0.2)
                 RecordStream = True
+
+                # Intrinsic parameters intel realsense
+                with open(os.path.join(script_dir, "calib_data/realsense_calib/K_f1370224.txt"), "w") as f:
+                    f.write(f"{intrinsics.fx} {0.0} {intrinsics.ppx}\n")
+                    f.write(f"{0.0} {intrinsics.fy} {intrinsics.ppy}\n")
+                    f.write(f"{0.0} {0.0} {1.0}\n")
+                
+                with open(os.path.join(script_dir, "calib_data/hololens_calib/K_hl2.txt"), "w") as f:
+                    f.write(f"{data.payload.focal_length[0]} {0.0} {data.payload.principal_point[0]}\n")
+                    f.write(f"{0.0} {data.payload.focal_length[1]} {data.payload.principal_point[1]}\n")
+                    f.write(f"{0.0} {0.0} {1.0}\n")
+
                 print("Recording started")
+
             else:
                 RecordStream = False
                 print("Recording stopped")
         if RecordStream:
-            save_frames(data.payload.image, color_image, hololens_dir, realsense_dir)
+                current_time = time.time()
+                if current_time - last_frame_time >= 5:
+                    framename = int(round(time.time() * 1000))
+                    hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
+                    realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")
+                    cv2.imwrite(hololens_img_path, data.payload.image)
+                    cv2.imwrite(realsense_img_path, color_image)
+                    last_frame_time = current_time
+
         # press esc or 'q' to close image window
         if key & 0xFF == ord("q") or key == 27: 
 
