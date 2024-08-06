@@ -44,13 +44,16 @@ def create_homogeneous_matrix(rvec, tvec):
     H[:3, 3] = tvec.ravel()
     return H
 
-def poseEstimation(option: DrawOption, intrinsics_path, image_path, output_file):
+def poseEstimation(option: DrawOption, directory_path, output_file):
     # Load intrinsic parameters.
-    k = np.loadtxt(intrinsics_path)
-    d = np.zeros((5, 1))  # Passing zero distortion coefficients.
+    k_path = glob.glob(os.path.join(directory_path, '*.txt'))
+    k = np.loadtxt(k_path[0])
+
+    # Passing zero distortion coefficients
+    d = np.zeros((5, 1))
 
     # Read image
-    imgPathlist = glob.glob(image_path)
+    imgPathlist = glob.glob(os.path.join(directory_path, '*.png'))
 
     # Initialize
     square_size = 0.021 # size of each square in meters
@@ -79,6 +82,7 @@ def poseEstimation(option: DrawOption, intrinsics_path, image_path, output_file)
 
             # Create homogeneous transformation matrix and add to list
             H = create_homogeneous_matrix(rvecs, tvecs)
+            print(H)
             transformation_matricies.append(H.tolist())
 
             if option == DrawOption.AXES:
@@ -90,22 +94,23 @@ def poseEstimation(option: DrawOption, intrinsics_path, image_path, output_file)
                 imgBGR = drawCube(imgBGR, imgpts)
             
             cv2.imshow('Chessboard', imgBGR)
-            cv2.waitKey(1000)
+            cv2.waitKey(10000)
         
-        with open(output_file, 'w') as f:
-            json.dump(transformation_matricies, f, indent=4)
+        with open(os.path.join(directory_path, output_file), "w") as f:
+            f.write(f"{H[0][0]}" f"{H[0][1]}" f"{H[0][2]}" f"{H[0][3]}\n")
+            f.write(f"{H[1][0]}" f"{H[1][1]}" f"{H[1][2]}" f"{H[1][3]}\n")
+            f.write(f"{H[2][0]}" f"{H[2][1]}" f"{H[2][2]}" f"{H[2][3]}\n")
+            f.write(f"{H[3][0]}" f"{H[3][1]}" f"{H[3][2]}" f"{H[3][3]}\n")
 
             return imgBGR
 
 if __name__ == '__main__':
-    realsense_intrinsics = r"calib_data/realsense_calib/K_f1370224.txt"
-    realsense_imgs = r"calib_data/realsense_calib/1722872215188.png"
-    realsense_output_file = 'rs_trans.json'
-    rs_result = poseEstimation(DrawOption.CUBE, realsense_intrinsics, realsense_imgs, realsense_output_file)
+    realsense_dir = r"calib_data/realsense_calib"
+    hololens_dir = r"calib_data/hololens_calib"
+    rs_output = r"rs_trans.txt"
+    hl2_output = r"hl2_trans.txt"
 
-    hololens2_intrinsics = r"calib_data/hololens_calib/K_hl2.txt"
-    hololens2_imgs = r"calib_data/hololens_calib/1722872215188.png"
-    hololens2_output_file = 'rs_trans.json'
-    hl2_result = poseEstimation(DrawOption.CUBE, hololens2_intrinsics, hololens2_imgs, hololens2_output_file)
+    rs_result = poseEstimation(DrawOption.CUBE, realsense_dir, rs_output)
+    hl2_result = poseEstimation(DrawOption.CUBE, hololens_dir, hl2_output)
 
  

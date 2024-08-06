@@ -39,7 +39,7 @@ host = "192.168.2.154"
 # 0: video
 # 1: video + camera pose
 # 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_2
+mode = hl2ss.StreamMode.MODE_1
 
 # Enable Mixed Reality Capture (Holograms)
 enable_mrc = False
