@@ -20,20 +20,10 @@ import pyrealsense2 as rs
 import numpy as np
 import threading
 
-# Save frames -----------------------------------------------------------------
-
-# def save_frames(hololens_frame, realsense_frame, hololens_dir, realsense_dir):
-#         threading.Timer(5.0, save_frames).start()
-#         framename = int(round(time.time() * 1000))
-#         hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
-#         realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")
-#         cv2.imwrite(hololens_img_path, hololens_frame)
-#         cv2.imwrite(realsense_img_path, realsense_frame)
-
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = "192.168.2.154"
+host = "169.254.50.249"
 
 # Operating mode
 # 0: video
@@ -139,9 +129,10 @@ else:
         print(f'Focal length: {data.payload.focal_length}')
         print(f'Principal point: {data.payload.principal_point}')
         
-        cv2.imshow('HoloLens2', data.payload.image)
-        cv2.imshow('Realsense', color_image)
-        key = cv2.waitKey(1)
+        if data.payload.image is not None:
+            cv2.imshow('HoloLens2', data.payload.image)
+            cv2.imshow('Realsense', color_image)
+            key = cv2.waitKey(1)
         
         # Start saving the frames if space is pressed once until it is pressed again
         if key & 0xFF == ord(" "):
@@ -167,7 +158,7 @@ else:
                 print("Recording stopped")
         if RecordStream:
                 current_time = time.time()
-                if current_time - last_frame_time >= 5:
+                if current_time - last_frame_time >= 2:
                     framename = int(round(time.time() * 1000))
                     hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
                     realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")

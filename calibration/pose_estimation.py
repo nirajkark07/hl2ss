@@ -97,10 +97,10 @@ def poseEstimation(option: DrawOption, directory_path, output_file):
             cv2.waitKey(10000)
         
         with open(os.path.join(directory_path, output_file), "w") as f:
-            f.write(f"{H[0][0]}" f"{H[0][1]}" f"{H[0][2]}" f"{H[0][3]}\n")
-            f.write(f"{H[1][0]}" f"{H[1][1]}" f"{H[1][2]}" f"{H[1][3]}\n")
-            f.write(f"{H[2][0]}" f"{H[2][1]}" f"{H[2][2]}" f"{H[2][3]}\n")
-            f.write(f"{H[3][0]}" f"{H[3][1]}" f"{H[3][2]}" f"{H[3][3]}\n")
+            f.write(f"{H[0][0]} {H[0][1]} {H[0][2]} {H[0][3]}\n")
+            f.write(f"{H[1][0]} {H[1][1]} {H[1][2]} {H[1][3]}\n")
+            f.write(f"{H[2][0]} {H[2][1]} {H[2][2]} {H[2][3]}\n")
+            f.write(f"{H[3][0]} {H[3][1]} {H[3][2]} {H[3][3]}\n")
 
             return imgBGR
 
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     rs_output = r"rs_trans.txt"
     hl2_output = r"hl2_trans.txt"
 
-    rs_result = poseEstimation(DrawOption.CUBE, realsense_dir, rs_output)
-    hl2_result = poseEstimation(DrawOption.CUBE, hololens_dir, hl2_output)
+    rs_result = poseEstimation(DrawOption.AXES, realsense_dir, rs_output)
+    hl2_result = poseEstimation(DrawOption.AXES, hololens_dir, hl2_output)
 
  
