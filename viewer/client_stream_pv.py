@@ -43,7 +43,7 @@ shared = False
 # Ignored in shared mode
 width     = 1920
 height    = 1080
-framerate = 30
+framerate = 15
 
 # Framerate denominator (must be > 0)
 # Effective FPS is framerate / divisor
@@ -86,6 +86,13 @@ pipe.start(config)
 #------------------------------------------------------------------------------
 
 hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, enable_mrc=enable_mrc, shared=shared)
+# Disable camera autofocus.
+focus_value = 2000
+client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
+client_rc.open()
+client_rc.wait_for_pv_subsystem(True)
+client_rc.set_pv_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, focus_value, hl2ss.PV_DriverFallback.Disable)
+client_rc.close()
 
 if (mode == hl2ss.StreamMode.MODE_2):
     data = hl2ss_lnm.download_calibration_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, width, height, framerate)
@@ -124,10 +131,10 @@ else:
         color_image = np.asanyarray(color_frame.get_data())
         intrinsics = color_frame.profile.as_video_stream_profile().intrinsics
 
-        print(f'Pose at time {data.timestamp}')
-        print(data.pose)
-        print(f'Focal length: {data.payload.focal_length}')
-        print(f'Principal point: {data.payload.principal_point}')
+        # print(f'Pose at time {data.timestamp}')
+        # print(data.pose)
+        # print(f'Focal length: {data.payload.focal_length}')
+        # print(f'Principal point: {data.payload.principal_point}')
         
         if data.payload.image is not None:
             cv2.imshow('HoloLens2', data.payload.image)
@@ -158,13 +165,14 @@ else:
                 print("Recording stopped")
         if RecordStream:
                 current_time = time.time()
-                if current_time - last_frame_time >= 2:
+                if current_time - last_frame_time >= 5:
                     framename = int(round(time.time() * 1000))
                     hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
                     realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")
                     cv2.imwrite(hololens_img_path, data.payload.image)
                     cv2.imwrite(realsense_img_path, color_image)
                     last_frame_time = current_time
+                    print(f"{framename}.png captured.")
 
         # press esc or 'q' to close image window
         if key & 0xFF == ord("q") or key == 27: 
