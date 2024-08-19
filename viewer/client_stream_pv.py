@@ -23,13 +23,13 @@ import threading
 # Settings --------------------------------------------------------------------
 
 # HoloLens address
-host = "169.254.50.249"
+host = "192.168.2.154"
 
 # Operating mode
 # 0: video
 # 1: video + camera pose
 # 2: query calibration (single transfer)
-mode = hl2ss.StreamMode.MODE_1
+mode = hl2ss.StreamMode.MODE_2
 
 # Enable Mixed Reality Capture (Holograms)
 enable_mrc = False
@@ -87,11 +87,11 @@ pipe.start(config)
 
 hl2ss_lnm.start_subsystem_pv(host, hl2ss.StreamPort.PERSONAL_VIDEO, enable_mrc=enable_mrc, shared=shared)
 # Disable camera autofocus.
-focus_value = 2000
+focus_value = 700 
 client_rc = hl2ss_lnm.ipc_rc(host, hl2ss.IPCPort.REMOTE_CONFIGURATION)
 client_rc.open()
 client_rc.wait_for_pv_subsystem(True)
-client_rc.set_pv_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Infinity, focus_value, hl2ss.PV_DriverFallback.Disable)
+client_rc.set_pv_focus(hl2ss.PV_FocusMode.Manual, hl2ss.PV_AutoFocusRange.Normal, hl2ss.PV_ManualFocusDistance.Nearest, focus_value, hl2ss.PV_DriverFallback.Disable)
 client_rc.close()
 
 if (mode == hl2ss.StreamMode.MODE_2):
@@ -124,6 +124,7 @@ else:
     RecordStream = False
     last_frame_time = time.time() # Initialize frame time
 
+    i = 0
     while (enable):
         data = client.get_next_packet()
         frame = pipe.wait_for_frames()
@@ -137,8 +138,14 @@ else:
         # print(f'Principal point: {data.payload.principal_point}')
         
         if data.payload.image is not None:
-            cv2.imshow('HoloLens2', data.payload.image)
-            cv2.imshow('Realsense', color_image)
+            display_scale = 0.5  # Scale down to 50% of the original size
+            hl2_image_resized = cv2.resize(data.payload.image, (0, 0), fx=display_scale, fy=display_scale)
+            realsense_image_resized = cv2.resize(color_image, (0, 0), fx=display_scale, fy=display_scale)
+            
+            # Display the resized images
+            cv2.imshow('HoloLens2', hl2_image_resized)
+            cv2.imshow('Realsense', realsense_image_resized)
+            
             key = cv2.waitKey(1)
         
         # Start saving the frames if space is pressed once until it is pressed again
@@ -165,7 +172,7 @@ else:
                 print("Recording stopped")
         if RecordStream:
                 current_time = time.time()
-                if current_time - last_frame_time >= 5:
+                if current_time - last_frame_time >= 2:
                     framename = int(round(time.time() * 1000))
                     hololens_img_path = os.path.join(hololens_dir, f"{framename}.png")
                     realsense_img_path = os.path.join(realsense_dir, f"{framename}.png")
@@ -173,6 +180,9 @@ else:
                     cv2.imwrite(realsense_img_path, color_image)
                     last_frame_time = current_time
                     print(f"{framename}.png captured.")
+                    print(i)
+                    i = i + 1
+                    RecordStream = False
 
         # press esc or 'q' to close image window
         if key & 0xFF == ord("q") or key == 27: 
